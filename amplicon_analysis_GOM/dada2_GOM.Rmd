@@ -1,0 +1,85 @@
+---
+title: "Seafloor microbiome community of Golf of Mexico"
+output: html_notebook
+---
+
+```{r}
+library("knitr") 
+# library("BiocStyle")
+# .cran_packages <- c("ggplot2", "gridExtra")
+# .bioc_packages <- c("dada2", "phyloseq", "DECIPHER", "phangorn")
+# .inst <- .cran_packages %in% installed.packages()
+# if(any(!.inst)) {
+#   install.packages(.cran_packages[!.inst])
+# }
+# .inst <- .bioc_packages %in% installed.packages()
+# if(any(!.inst)) {
+#   source("http://bioconductor.org/biocLite.R")
+#   biocLite(.bioc_packages[!.inst], ask = F)
+# }
+# # Load packages into session, and print package version
+# sapply(c(.cran_packages, .bioc_packages), require, character.only = TRUE)
+
+library(dada2)
+library(phyloseq)
+```
+
+```{r}
+path <- "C:\\Users\\MSI\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\matomo\\jacobs\\BCCB_project\\amplicon_analysis_GOM\\Data" # change this directory to where fastq files are stored. 
+list.files(path)
+```
+
+
+```{r}
+
+fnFs <- sort(list.files(path, pattern="_1.fastq", full.name = TRUE))
+
+# Extract sample names, assuming filenames have format: SAMPLENAME_XXX.fastq
+sample.names <- sapply(strsplit(basename(fnFs), "_"), `[`, 1)
+```
+
+
+
+```{r}
+plotQualityProfile(fnFs[1:2])
+```
+
+
+```{r}
+# Place filtered files in filtered subdirectory
+filtFs <- file.path(path, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
+names(filtFs) <- sample.names
+
+```
+
+
+```{r}
+out <- filterAndTrim(
+  fwd = fnFs,
+  filt = filtFs, 
+  truncLen=c(250),
+  maxN=0,
+  maxEE=c(1),
+  truncQ=2,
+  rm.phix=TRUE,
+  compress=TRUE,
+  multithread=TRUE)
+head(out)
+```
+
+
+
+```{r}
+derepFs <- derepFastq(filtFs, verbose=TRUE)
+
+# Name the derep-class object by the sample names. 
+names(derepFs) <- sample.names
+```
+
+
+
+```{r}  
+errF <- learnErrors(filtFs, multithread=TRUE)
+plotErrors(errF, nominalQ=TRUE) 
+```
+
