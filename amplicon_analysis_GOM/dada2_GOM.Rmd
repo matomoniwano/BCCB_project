@@ -1,0 +1,202 @@
+---
+title: "Seafloor microbiome community of Golf of Mexico"
+output: html_notebook
+---
+
+In this Rstudio markdown (version 2.1), a workflow of reanalysis of a publication ("J. Jistka, et.al") using the dada2 pipeline is documented.
+
+Version of tools used in this R Markdown:
+
+R = version 3.6.0
+dada2 = version 1.12.1
+phyloseq = version 1.28.0
+
+raw sequence data was downloaded as sra files from NCBI Bio Project. Then the sra files were converted into fastq file by "fastq-dump" version 2.10.0 with command below
+
+```{engine='bash'}
+
+./fastq-dump --split-files $Accession_Number
+
+```
+
+25 samples with different sediment depths from 5 different locations in the Golf of Mexico were selected and downloaded. 
+
+
+-Loading neccesary packages- 
+
+```{r}
+library("knitr") 
+# library("BiocStyle")
+# .cran_packages <- c("ggplot2", "gridExtra")0
+# .bioc_packages <- c("dada2", "phyloseq", "DECIPHER", "phangorn")
+# .inst <- .cran_packages %in% installed.packages()
+# if(any(!.inst)) {
+#   install.packages(.cran_packages[!.inst])
+# }
+# .inst <- .bioc_packages %in% installed.packages()
+# if(any(!.inst)) {
+#   source("http://bioconductor.org/biocLite.R")
+#   biocLite(.bioc_packages[!.inst], ask = F)
+# }
+# # Load packages into session, and print package version
+# sapply(c(.cran_packages, .bioc_packages), require, character.only = TRUE)
+
+library(dada2)
+library(phyloseq)
+```
+
+
+-listing all the fastq files downloaded from the NCBI Bio Project cloud server- 
+
+```{r}
+path <- "C:\\Users\\MSI\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\matomo\\jacobs\\BCCB_project\\amplicon_analysis_GOM\\extra_data" # change this directory to where fastq files are stored. 
+list.files(path)
+```
+
+As shown above, there are 25 fastq files that are downloaded from the cloud database. The file name corresponds to the accession number acquired from the NCBI Bio Project database. Metadata of these files have been uploaded to the github repository of this project. Visit https://github.com/matomoniwano/BCCB_project
+
+
+-Specifying forward reads from the files within the directory (Fastq-dump only spitted out one fastq file which contains both pair-end reads)-
+
+```{r}
+
+fnFs <- sort(list.files(path, pattern="_1.fastq", full.name = TRUE))
+
+# Extract sample names, assuming filenames have format: SAMPLENAME_XXX.fastq
+sample.names <- sapply(strsplit(basename(fnFs), "_"), `[`, 1)
+```
+
+
+- visualizing the quality of the fastq files before filtering and trimming. 
+```{r}
+plotQualityProfile(fnFs[1:2])
+```
+
+As shown in the plot graph above, the quality of reads declines at the position of 250 and this would be the cutoff point for the truncation. 
+
+-Assigning a variable for fastq file names after filtering and trimming.- 
+```{r}
+# Place filtered files in filtered subdirectory
+filtFs <- file.path(path, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
+names(filtFs) <- sample.names
+
+```
+
+- filtering and trimming- 
+
+For details on each parameter used in this command, please check my dada2 tutorial R markdown or the official documentation. 
+```{r}
+out <- filterAndTrim(
+  fwd = fnFs,
+  filt = filtFs, 
+  truncLen=c(250),
+  maxN=0,
+  maxEE=c(1),
+  truncQ=2,
+  rm.phix=TRUE,
+  compress=TRUE,
+  multithread=TRUE)
+head(out)
+```
+
+-Checking the quality after the filtering.- 
+```{r}
+plotQualityProfile(filtFs[1:2])
+```
+The data is looking good now!
+
+- Dereplication combines all identical sequenceing reads into "unique sequence" witha corresponding "abundance"-
+```{r}
+derepFs <- derepFastq(filtFs, verbose=TRUE)
+
+# Name the derep-class object by the sample names. 
+names(derepFs) <- sample.names
+```
+
+- learn the error rates -
+
+Every amplicon dataset has a different set of error rates. 
+Blackline shows the estimated error rates after convergence of the machine-learning algorithm.
+Redline shows the error rates expected under the nominal definition of the Q-score.
+Black lines are a good fit fot the observed rates and the errror rates drop with increased quality as expected.
+
+
+```{r}  
+errF <- learnErrors(filtFs, multithread=TRUE)
+plotErrors(errF, nominalQ=TRUE) 
+```
+
+- Sample Inference-
+
+This process contains removal of unique sequences that were produced by error. 
+```{r}
+dadaFs <- dada(filtFs, err=errF, multithread=TRUE, pool="pseudo")
+dadaFs[[1]]
+```
+
+- Construction of ASV files- 
+
+```{r}
+seqtab <- makeSequenceTable(dadaFs)
+dim(seqtab)
+# inspect distribution of sequence lengths
+table(nchar(getSequences(seqtab)))
+``` 
+The number 49172 implies the number of ASV detected from the sample.  
+
+-Chimera detection- 
+```{r}
+seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
+dim(seqtab.nochim)
+sum(seqtab.nochim)/sum(seqtab)
+```
+
+-Tracking the reads from the pipeline-
+```{r}
+getN <- function(x) sum(getUniques(x))
+track <- cbind(out, sapply(dadaFs, getN), rowSums(seqtab.nochim))
+# if processing a single sample, remove the sapply calls
+colnames(track) <- c("input", "filtered", "denoisedF", "nonchim")
+rownames(track) <- sample.names
+head(track)
+```
+
+-Assigning Taxonomy- the general fasta release files can be downloaded from https://unite.ut.ee/repository.php
+```{r}
+taxa <- assignTaxonomy(
+  seq = seqtab.nochim, 
+  refFasta = "C:\\Users\\MSI\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\matomo\\jacobs\\BCCB_project\\amplicon_analysis_GOM\\silva_nr_v132_train_set.fa.gz", multithread=TRUE)
+taxa.print <- taxa # Removing sequence rownames for display only 
+rownames(taxa.print) <- NULL
+head(taxa.print)
+```
+
+-Exporting ASV table, fasta file, and taxonomy table. -
+```{r}
+# Giving our seq headers more manageable names
+asv_seqs <- colnames(seqtab.nochim)
+asv_headers <- vector(dim(seqtab.nochim)[2], mode="character")
+
+for (i in 1:dim(seqtab.nochim)[2]) {
+  asv_headers[i] <- paste(">ASV", i, seq="_")
+}
+
+# making and writing out a fast of our final ASV seqs:
+asv_fasta <- c(rbind(asv_headers, asv_seqs))
+# File name can be changed by modifying "ASVs.fa"
+write(asv_fasta, "ASVs_GOM.fa") 
+
+
+# ASV table
+asv_tab <- t(seqtab.nochim)
+row.names(asv_tab) <- sub(">", "", asv_headers)
+# File name can be changed by modifying "ASVs_counts.tsv"
+write.table(asv_tab, "ASVs_GOM.tsv", sep="\t", quote=F, col.names=NA)
+
+# tax table (This is commented out due to memory allocation failure on my laptop)
+ asv_tax <- taxa
+ row.names(asv_tax) <- sub(">", "", asv_headers)
+ write.table(asv_tax, "ASVs_GOM_Taxa.tsv", sep="\t", quote=F, col.names=NA)
+```
+
+
