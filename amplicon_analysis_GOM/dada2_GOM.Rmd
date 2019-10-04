@@ -53,7 +53,7 @@ path <- "C:\\Users\\MSI\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntuo
 list.files(path)
 ```
 
-As shown above, there are 25 fastq files that are downloaded from the cloud database. The file name corresponds to the accession number acquired from the NCBI Bio Project database. Metadata of these files have been uploaded to the github repository of this project. Visit https://github.com/matomoniwano/BCCB_project
+As shown above, there are 30 fastq files that are downloaded from the cloud database. The file name corresponds to the accession number acquired from the NCBI Bio Project database. Metadata of these files have been uploaded to the github repository of this project. Visit https://github.com/matomoniwano/BCCB_project
 
 
 -Specifying forward reads from the files within the directory (Fastq-dump only spitted out one fastq file which contains both pair-end reads)-
@@ -126,6 +126,10 @@ errF <- learnErrors(filtFs, multithread=TRUE)
 plotErrors(errF, nominalQ=TRUE) 
 ```
 
+```{r}
+plotErrors(errF, nominalQ=TRUE) 
+```
+
 - Sample Inference-
 
 This process contains removal of unique sequences that were produced by error. 
@@ -142,7 +146,7 @@ dim(seqtab)
 # inspect distribution of sequence lengths
 table(nchar(getSequences(seqtab)))
 ``` 
-The number 49172 implies the number of ASV detected from the sample.  
+The number 57757 implies the number of ASV detected from the sample.  
 
 -Chimera detection- 
 ```{r}
