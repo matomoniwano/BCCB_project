@@ -19,6 +19,8 @@ raw sequence data was downloaded as sra files from NCBI Bio Project. Then the sr
 
 ```
 
+--split-files = This option dumps each read into separate file. For instance, fastq-dump converts one sra file into two fastq files, which each file is corresponded to forward and reverse reads. From this datasets, only one foward fastq files were generated due to the availability of uploaded file.    
+
 25 samples with different sediment depths from 5 different locations in the Golf of Mexico were selected and downloaded. 
 
 
@@ -56,21 +58,29 @@ list.files(path)
 As shown above, there are 30 fastq files that are downloaded from the cloud database. The file name corresponds to the accession number acquired from the NCBI Bio Project database. Metadata of these files have been uploaded to the github repository of this project. Visit https://github.com/matomoniwano/BCCB_project
 
 
+
+
 -Specifying forward reads from the files within the directory (Fastq-dump only spitted out one fastq file which contains both pair-end reads)-
 
 ```{r}
 
 fnFs <- sort(list.files(path, pattern="_1.fastq", full.name = TRUE))
 
-# Extract sample names, assuming filenames have format: SAMPLENAME_XXX.fastq
+# Extract sample names, assuming filenames have format: SAMPLENAME_1.fastq
 sample.names <- sapply(strsplit(basename(fnFs), "_"), `[`, 1)
 ```
+
+fnFs = name of variable
+pattern="_1.fastq = selecting all the fastq files in the directory that contain a string '_1.fastq' in the file name.
+
 
 
 - visualizing the quality of the fastq files before filtering and trimming. 
 ```{r}
 plotQualityProfile(fnFs[1:2])
 ```
+
+fnFs[1:2] = selecting first two files from the targeted fastq files in the directory.
 
 As shown in the plot graph above, the quality of reads declines at the position of 250 and this would be the cutoff point for the truncation. 
 
@@ -82,9 +92,22 @@ names(filtFs) <- sample.names
 
 ```
 
+In this step, file names after filtering process are assigned in a variable called filFs. The name of file is basically the original file name with '_F_filt' before .fastq extention. 
+
 - filtering and trimming- 
 
-For details on each parameter used in this command, please check my dada2 tutorial R markdown or the official documentation. 
+Parameter used in 'filterAndTrim'
+
+fwd = The path to the input fastq files. In this case, 'fnFs'.
+filt = The path to the output filtered files from fwd. In this case 'filtFs'.
+trunclen = Legth of reads after truncation of bases. As shown above, the value for trunclen is decided at 250. 
+maxN = 
+
+
+
+
+
+
 ```{r}
 out <- filterAndTrim(
   fwd = fnFs,
