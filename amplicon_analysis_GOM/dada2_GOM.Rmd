@@ -168,29 +168,37 @@ dadaFs <- dada(filtFs, err=errF, multithread=TRUE, pool="pseudo")
 dadaFs[[1]]
 ```
 
+- **err** = 16xN numeric matrix, or an object coercible by getErrors such as the output of the learnErrors function operated in the previous step. 'errF' is the name of variable that was used to store the result from the previous step.
+
+- **pool** = If pool = TRUE, the algorithm will pool together all samples prior to sample inference. If pool = FALSE, sample inference is performed on each sample individually. If pool = "pseudo", the algorithm will perform pseudo-pooling between individually processed samples. In other words, when sample A has 1000 copies of of sequence Z while sample B only contains one single copy of sequence Z, sequence Z is likely to be filtered out of sample B although it was a true "singleton" among other sequences in the sample B. This is what is expected to happen when the parameter 'pool' is set to FALSE. On the other hand, when the paramter 'pool' is set to TRUE, it is going to require inconvinient over-workload of computation if the large datasets are processed. For this reason, the parameter "pseudo" option lies somewhere between these two pooling options. Pesudo option contains a two step process i which independent processing is performed twice: First on the raw data alone, and then on the raw data again but informed by priors generated from the first round of processing in the second time. Pseudo-pooling provides a more accurate resolution of ASVs. For this reason, pseudo option is used in this datasets. 
 
 
 
-
-
-- Construction of ASV files- 
+### - Construction of ASV files- 
 
 ```{r}
-seqtab <- makeSequenceTable(dadaFs)
+seqtab <- makeSequenceTable(samples = dadaFs)
 dim(seqtab)
 # inspect distribution of sequence lengths
 table(nchar(getSequences(seqtab)))
 ``` 
 The number 57757 implies the number of ASV detected from the sample.  
 
--Chimera detection- 
+### -Chimera detection- 
 ```{r}
-seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
+seqtab.nochim <- removeBimeraDenovo(unqs = seqtab, method = "consensus", multithread = TRUE, verbose = TRUE)
 dim(seqtab.nochim)
 sum(seqtab.nochim)/sum(seqtab)
 ```
 
--Tracking the reads from the pipeline-
+Chimera is an errous biological sequence derived from two parent sequences during the process of amplification 
+
+
+- **unqs** = Object that can be coerced in to one with getUniques. In this case seqtab from the previous step.
+- **method** = If "pooled": The samples in the sequence table are all pooled together for bimera identification. If "consensus": The samples in a sequence table are independently checked for bimeras, and a consensus decision on each sequence variant is made. If "per-sample": The samples in a sequence table are independently checked for bimeras, and sequence variants are removed (zeroed-out) from samples independently.
+- **verbose** = print verbose text output if TRUE. 
+
+### -Tracking the reads from the pipeline-
 ```{r}
 getN <- function(x) sum(getUniques(x))
 track <- cbind(out, sapply(dadaFs, getN), rowSums(seqtab.nochim))
@@ -237,5 +245,4 @@ write.table(asv_tab, "ASVs_GOM.tsv", sep="\t", quote=F, col.names=NA)
  row.names(asv_tax) <- sub(">", "", asv_headers)
  write.table(asv_tax, "ASVs_GOM_Taxa.tsv", sep="\t", quote=F, col.names=NA)
 ```
-
-
+.
