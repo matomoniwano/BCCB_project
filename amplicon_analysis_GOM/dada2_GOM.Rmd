@@ -5,11 +5,11 @@ output: html_notebook
 
 In this Rstudio markdown (version 2.1), a workflow of reanalysis of a publication ("J. Jistka, et.al") using the dada2 pipeline is documented.
 
-Version of tools used in this R Markdown:
+### Version of tools used in this R Markdown:
 
-R = version 3.6.0
-dada2 = version 1.12.1
-phyloseq = version 1.28.0
+-  **R** = version 3.6.0
+- **dada2** = version 1.12.1
+- **phyloseq** = version 1.28.0
 
 raw sequence data was downloaded as sra files from NCBI Bio Project. Then the sra files were converted into fastq file by "fastq-dump" version 2.10.0 with command below
 
@@ -19,12 +19,11 @@ raw sequence data was downloaded as sra files from NCBI Bio Project. Then the sr
 
 ```
 
---split-files = This option dumps each read into separate file. For instance, fastq-dump converts one sra file into two fastq files, which each file is corresponded to forward and reverse reads. From this datasets, only one foward fastq files were generated due to the availability of uploaded file.    
+- **--split-files** = This option dumps each read into separate file. For instance, fastq-dump converts one sra file into two fastq files, which each file is corresponded to forward and reverse reads. From this datasets, only one foward fastq files were generated due to the availability of uploaded file.    
 
 25 samples with different sediment depths from 5 different locations in the Golf of Mexico were selected and downloaded. 
 
-
--Loading neccesary packages- 
+### Loading neccesary packages 
 
 ```{r}
 library("knitr") 
@@ -48,19 +47,21 @@ library(phyloseq)
 ```
 
 
--listing all the fastq files downloaded from the NCBI Bio Project cloud server- 
+### -listing all the fastq files downloaded from the NCBI Bio Project cloud server- 
 
 ```{r}
 path <- "C:\\Users\\MSI\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\matomo\\jacobs\\BCCB_project\\amplicon_analysis_GOM\\extra_data" # change this directory to where fastq files are stored. 
 list.files(path)
 ```
 
+
+
 As shown above, there are 30 fastq files that are downloaded from the cloud database. The file name corresponds to the accession number acquired from the NCBI Bio Project database. Metadata of these files have been uploaded to the github repository of this project. Visit https://github.com/matomoniwano/BCCB_project
 
 
 
 
--Specifying forward reads from the files within the directory (Fastq-dump only spitted out one fastq file which contains both pair-end reads)-
+### -Specifying forward reads from the files within the directory (Fastq-dump only spitted out one fastq file which contains both pair-end reads)-
 
 ```{r}
 
@@ -70,21 +71,21 @@ fnFs <- sort(list.files(path, pattern="_1.fastq", full.name = TRUE))
 sample.names <- sapply(strsplit(basename(fnFs), "_"), `[`, 1)
 ```
 
-fnFs = name of variable
-pattern="_1.fastq = selecting all the fastq files in the directory that contain a string '_1.fastq' in the file name.
+- **fnFs** = name of variable
+- **pattern="_1.fastq** = selecting all the fastq files in the directory that contain a string '_1.fastq' in the file name.
 
 
 
-- visualizing the quality of the fastq files before filtering and trimming. 
+### -visualizing the quality of the fastq files before filtering and trimming. 
 ```{r}
 plotQualityProfile(fnFs[1:2])
 ```
 
-fnFs[1:2] = selecting first two files from the targeted fastq files in the directory.
+**fnFs[1:2]** = selecting first two files from the targeted fastq files in the directory.
 
 As shown in the plot graph above, the quality of reads declines at the position of 250 and this would be the cutoff point for the truncation. 
 
--Assigning a variable for fastq file names after filtering and trimming.- 
+### -Assigning a variable for fastq file names after filtering and trimming.- 
 ```{r}
 # Place filtered files in filtered subdirectory
 filtFs <- file.path(path, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
@@ -94,16 +95,7 @@ names(filtFs) <- sample.names
 
 In this step, file names after filtering process are assigned in a variable called filFs. The name of file is basically the original file name with '_F_filt' before .fastq extention. 
 
-- filtering and trimming- 
-
-Parameter used in 'filterAndTrim'
-
-fwd = The path to the input fastq files. In this case, 'fnFs'.
-filt = The path to the output filtered files from fwd. In this case 'filtFs'.
-trunclen = Legth of reads after truncation of bases. As shown above, the value for trunclen is decided at 250. 
-maxN = 
-
-
+### - filtering and trimming- 
 
 
 
@@ -121,45 +113,65 @@ out <- filterAndTrim(
   multithread=TRUE)
 head(out)
 ```
+#### Parameter used in 'filterAndTrim'
 
--Checking the quality after the filtering.- 
+- **fwd** = The path to the input fastq files. In this case, 'fnFs'.
+- **filt** = The path to the output filtered files from fwd. In this case 'filtFs'.
+- **trunclen** = Legth of reads after truncation of bases. As shown above, the value for trunclen is decided at 250. 
+- **maxN** = After truncation, sequences with more than maxN Ns will be discarded. Since DADA2 requires no Ns, we will stick with default value 0.
+- **maxEE** = After truncation, reads with higher than maxEE "expected errors" will be discarded. The maxEE parameter sets the maximum number of "expected errors" allowed in a read. In other words, we want to throw the read away if the read has is likely to have more than value 'maxEE' erroneous base calls. The EE is defined to be the mean of errors that would be observed in a very large collection of sequences where error rate in each read position is occured independently. Expected error is the sum of error probabilities. For instance, 
+EE = sum(Probability of an error; the base is incorrect if P is the error probability) = sum(10^(-Q/10)). 
+If P = 0.5 that means there is a 50% of chance that the base is wrong. Therefore, large EE number implies that the sum of probabilities of error is large as well, so if maxEE is set to low, then only the reads with small sum of error probabilities can pass through the filter (high quality reads). This time maxEE is set to 1 for the sake of high quality reads filteration and efficiency of computation to process such a large datasets. If filtered reads are too few, then please increase the maxEE value (relaxation of filter). 
+- **truncQ** = Truncate reads at the first instance of a quality score less than or equal to truncQ. Default is 2 meaning that reads with quality score of 2 (p error = 0.63096) are automatically truncated since there is a 63% chance of the base being wrong. 
+- **rm.phix** = If TRUE, discard reads that match against the phiX genome. Phix bacteriophage genome is typically added to illumina sequencing runs for quality monitoring. 
+- **compress** = If TRUE, the output fastq files are gzipped
+- **multithread** = if TRUE, input files are filtered in parallel via mclapply. It allows it paralell computation which results in faster processing time. 
+
+### -Checking the quality after the filtering.- 
 ```{r}
 plotQualityProfile(filtFs[1:2])
 ```
 The data is looking good now!
 
-- Dereplication combines all identical sequenceing reads into "unique sequence" witha corresponding "abundance"-
+### -Dereplication combines all identical sequenceing reads into "unique sequence" witha corresponding "abundance"-
 ```{r}
 derepFs <- derepFastq(filtFs, verbose=TRUE)
 
 # Name the derep-class object by the sample names. 
 names(derepFs) <- sample.names
 ```
-
-- learn the error rates -
+- **verbose** = if TRUE, throw standardR messengeson the intermittent and final status of the dereplication. In this case, it is set to TRUE so that the process of dereplication is show in the intermittent. 
+### -learn the error rates -
 
 Every amplicon dataset has a different set of error rates. 
 Blackline shows the estimated error rates after convergence of the machine-learning algorithm.
 Redline shows the error rates expected under the nominal definition of the Q-score.
 Black lines are a good fit fot the observed rates and the errror rates drop with increased quality as expected.
 
-
 ```{r}  
 errF <- learnErrors(filtFs, multithread=TRUE)
 plotErrors(errF, nominalQ=TRUE) 
 ```
 
-```{r}
-plotErrors(errF, nominalQ=TRUE) 
-```
+- **multithread** = If TRUE, multithreading is enabled and the number of availble thread is automatically determined. Just like above, this parameter is set to TRUE for faster computation. 
+- **nominalQ** =  If TRUE, plot the expected error rates (red line shown in the graph) if quality scores exactly matched their nominal definition: Q = -10 log10(p_err).
 
-- Sample Inference-
+The red line is expected line based on the given quality score, the black line indicates the estimated line, and the black dots shows the observed error frequency in each consensus quality score. Ideally, the black dots should follow the track of the black line. 
+
+From the graph above, the black dots follow the trend of black line. This is looking good. 
+
+### -Sample Inference-
 
 This process contains removal of unique sequences that were produced by error. 
 ```{r}
 dadaFs <- dada(filtFs, err=errF, multithread=TRUE, pool="pseudo")
 dadaFs[[1]]
 ```
+
+
+
+
+
 
 - Construction of ASV files- 
 
