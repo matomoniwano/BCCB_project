@@ -43,7 +43,6 @@ library("knitr")
 # sapply(c(.cran_packages, .bioc_packages), require, character.only = TRUE)
 
 library(dada2)
-library(phyloseq)
 ```
 
 
@@ -208,7 +207,7 @@ rownames(track) <- sample.names
 head(track)
 ```
 
--Assigning Taxonomy- the general fasta release files can be downloaded from https://unite.ut.ee/repository.php
+### -Assigning Taxonomy- the general fasta release files can be downloaded from https://unite.ut.ee/repository.php
 ```{r}
 taxa <- assignTaxonomy(
   seq = seqtab.nochim, 
@@ -218,7 +217,7 @@ rownames(taxa.print) <- NULL
 head(taxa.print)
 ```
 
--Exporting ASV table, fasta file, and taxonomy table. -
+### -Exporting ASV table, fasta file, and taxonomy table. -
 ```{r}
 # Giving our seq headers more manageable names
 asv_seqs <- colnames(seqtab.nochim)
@@ -245,4 +244,72 @@ write.table(asv_tab, "ASVs_GOM.tsv", sep="\t", quote=F, col.names=NA)
  row.names(asv_tax) <- sub(">", "", asv_headers)
  write.table(asv_tax, "ASVs_GOM_Taxa.tsv", sep="\t", quote=F, col.names=NA)
 ```
-.
+
+Now there sould be three output files: one FASTA file, one ASV table, and one taxonomy table.
+
+## Analysis in R
+
+### setting the working directory
+```{r}
+# setting the right directory
+setwd("~/Desktop/Jacobs/BCCB_project/amplicon_analysis_GOM/")
+list.files()
+
+# install.packages("phyloseq")
+# install.packages("vegan")
+#install.packages("DESeq2")
+# install.packages("ggplot2")
+# install.packages("dendextend")
+# install.packages("tidyr")
+# install.packages("viridis")
+# install.packages("reshape")
+```
+
+### loading the packages
+
+```{r}
+library("phyloseq")
+library("vegan")
+library("DESeq2")
+library("ggplot2")
+library("dendextend")
+library("tidyr")
+library("viridis")
+library("reshape")
+```
+
+## Checking the package version 
+
+```{r}
+packageVersion("phyloseq")
+packageVersion("vegan")
+packageVersion("DESeq2")
+packageVersion("ggplot2") 
+packageVersion("dendextend")
+packageVersion("tidyr")
+packageVersion("viridis")
+packageVersion("reshape")
+```
+
+## Reading the exported data from the directory
+
+```{r}
+write(asv_fasta, file = "ASVs_GOM.fa")
+write.table(asv_tab, file = "ASVs_GOM.tsv", sep = "\t", quote = F, col.names = NA)
+write.table(asv_tax, "ASVs_GOM_Taxa.tsv", sep = "\t", quote = F, col.names = NA)
+
+# moving on to 
+
+rm(list=ls())
+
+count_tab <- read.table("ASVs_GOM.tsv", header=T, row.names=1, check.names=F, sep="\t")
+
+
+```
+
+- sep = a string used to separate columns. using sep = "\t" gives tab deliminated output
+- quote = a logical value or a numeric vector. If TRUE, any character or factor coluns will be surrounded by double quotes. If FALSE, nothing is quoted/
+- col.names = either a logical value indicating whether the column names of x are to be written along with x, or a character vector of column names to be written. 
+
+
+
