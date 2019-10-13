@@ -252,7 +252,7 @@ Now there sould be three output files: one FASTA file, one ASV table, and one ta
 ### setting the working directory
 ```{r}
 # setting the right directory
-setwd("~/Desktop/Jacobs/BCCB_project/amplicon_analysis_GOM/")
+setwd("C:\\Users\\MSI\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\matomo\\jacobs\\BCCB_project\\amplicon_analysis_GOM")
 list.files()
 
 # install.packages("phyloseq")
@@ -270,9 +270,9 @@ list.files()
 ```{r}
 library("phyloseq")
 library("vegan")
-library("DESeq2")
+#library("DESeq2")
 library("ggplot2")
-library("dendextend")
+#library("dendextend")
 library("tidyr")
 library("viridis")
 library("reshape")
@@ -283,9 +283,9 @@ library("reshape")
 ```{r}
 packageVersion("phyloseq")
 packageVersion("vegan")
-packageVersion("DESeq2")
+#packageVersion("DESeq2")
 packageVersion("ggplot2") 
-packageVersion("dendextend")
+#packageVersion("dendextend")
 packageVersion("tidyr")
 packageVersion("viridis")
 packageVersion("reshape")
@@ -294,16 +294,20 @@ packageVersion("reshape")
 ## Reading the exported data from the directory
 
 ```{r}
-write(asv_fasta, file = "ASVs_GOM.fa")
-write.table(asv_tab, file = "ASVs_GOM.tsv", sep = "\t", quote = F, col.names = NA)
-write.table(asv_tax, "ASVs_GOM_Taxa.tsv", sep = "\t", quote = F, col.names = NA)
+#write(asv_fasta, file = "ASVs_GOM.fa")
+#write.table(asv_tab, file = "ASVs_GOM.tsv", sep = "\t", quote = F, col.names = NA)
+#write.table(asv_tax, "ASVs_GOM_Taxa.tsv", sep = "\t", quote = F, col.names = NA)
 
 # moving on to 
 
 rm(list=ls())
 
 count_tab <- read.table("ASVs_GOM.tsv", header=T, row.names=1, check.names=F, sep="\t")
+tax_tab <- as.matrix(read.table("ASVs_GOM_Taxa.tsv", header=T, row.names=1, check.names=F, sep = "\t"))
+sample_info_tab <- read.table("sample_metadata.txt", header = T, row.names = 1, check.names = F, sep = "\t")
 
+# setting the color column to be of type "character", which helps later
+sample_info_tab
 
 ```
 
