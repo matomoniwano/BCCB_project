@@ -270,7 +270,7 @@ list.files()
 ```{r}
 library("phyloseq")
 library("vegan")
-#library("DESeq2")
+library("DESeq2")
 library("ggplot2")
 #library("dendextend")
 library("tidyr")
@@ -283,7 +283,7 @@ library("reshape")
 ```{r}
 packageVersion("phyloseq")
 packageVersion("vegan")
-#packageVersion("DESeq2")
+packageVersion("DESeq2")
 packageVersion("ggplot2") 
 #packageVersion("dendextend")
 packageVersion("tidyr")
@@ -292,6 +292,7 @@ packageVersion("reshape")
 ```
 
 ## Reading the exported data from the directory
+
 
 ```{r}
 #write(asv_fasta, file = "ASVs_GOM.fa")
@@ -304,7 +305,7 @@ rm(list=ls())
 
 count_tab <- read.table("ASVs_GOM.tsv", header=T, row.names=1, check.names=F, sep="\t")
 tax_tab <- as.matrix(read.table("ASVs_GOM_Taxa.tsv", header=T, row.names=1, check.names=F, sep = "\t"))
-sample_info_tab <- read.table("sample_metadata.txt", header = T, row.names = 1, check.names = F, sep = "\t")
+sample_info_tab <- read.table("sample_metadata.txt", header = T, row.names = NULL, check.names = F, sep = "\t")
 
 # setting the color column to be of type "character", which helps later
 sample_info_tab
@@ -314,6 +315,67 @@ sample_info_tab
 - sep = a string used to separate columns. using sep = "\t" gives tab deliminated output
 - quote = a logical value or a numeric vector. If TRUE, any character or factor coluns will be surrounded by double quotes. If FALSE, nothing is quoted/
 - col.names = either a logical value indicating whether the column names of x are to be written along with x, or a character vector of column names to be written. 
+
+```{r}
+
+otu <- otu_table(count_tab, taxa_are_rows = F)
+TAX <- tax_table(tax_tab)
+samples <- sample_data(sample_info_tab)
+
+row.names(otu) <- paste0("ASV", 1)
+row.names(TAX) <- TAX[[ASVs]]
+row.names(samples) <- samples[[run_id]]
+
+otu <- otu %>% select (-ASVs)
+TAX <- TAX %>% select (-ASVs)
+samples <- samples %>% select (-run_id)
+
+head(taxa_names(otu))
+head(taxa_names(TAX))
+
+Ps <- phyloseq(otu, TAX, samples)
+```
+
+
+## Beta Diversity 
+
+Beta diversity measures microbial community differences between samples/environments.  
+
+- Since differences in sampling depths between samples can influence distance/dissimilarity metrics, we first need to somehow normalize across our samples - 
+DESeq2 package allows us to normalize samples. 
+
+```{r}
+#We have to include the colData and design arguments because they are required but it does not really matter. 
+deseq_counts <- DESeqDataSetFromMatrix(count_tab, colData = sample_info_tab, design = ~depth)
+
+# if you get an error "Error in estimateSizeFactorsForMatrix(counts(object), locfunc - locfunc,: every gene contains at least one zero, cannot compute log geometric means", that can be due to the sparse orientation of the count table, run this script below
+
+deseq_counts <- estimateSizeFactors(deseq_counts, type = "poscounts")
+deseq_counts_vst <- varianceStabilizingTransformation(deseq_counts)
+
+vst_trans_count_tab <- assay(deseq_counts_vst)
+
+euc_dist_2 <- dist(t(vst_trans_count_tab))
+```
+
+
+```{r}
+euc_dist <- dist(t(count_tab))
+```
+
+
+```{r}
+euc_clust <- hclust(euc_dist, method = "ward.D2")
+euc_clust_2 <- hclust(euc_dist_2, method = "ward.D2")
+
+
+euc_dend <- as.dendrogram(euc_clust, hang=0.1)
+euc_dend_2 <- as.dendrogram(euc_clust_2, hang=0.1)
+
+plot(euc_dend, ylab="Euc. Dist")
+plot(euc_dend_2, ylab="Euc. Dist, VST")
+
+```
 
 
 
