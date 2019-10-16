@@ -305,7 +305,9 @@ rm(list=ls())
 
 count_tab <- read.table("ASVs_GOM.tsv", header=T, row.names=1, check.names=F, sep="\t")
 tax_tab <- as.matrix(read.table("ASVs_GOM_Taxa.tsv", header=T, row.names=1, check.names=F, sep = "\t"))
-sample_info_tab <- read.table("sample_metadata.txt", header = T, row.names = NULL, check.names = F, sep = "\t")
+sample_info_tab <- read.table("sample_metadata.txt", header = T, row.names = 1, check.names = F, sep = "\t")
+
+
 
 # setting the color column to be of type "character", which helps later
 sample_info_tab
@@ -317,25 +319,20 @@ sample_info_tab
 - col.names = either a logical value indicating whether the column names of x are to be written along with x, or a character vector of column names to be written. 
 
 ```{r}
-
-otu <- otu_table(count_tab, taxa_are_rows = F)
+otu_1 <- as.matrix(count_tab)
+otu <- otu_table(otu_1, taxa_are_rows = T)
 TAX <- tax_table(tax_tab)
 samples <- sample_data(sample_info_tab)
 
-row.names(otu) <- paste0("ASV", 1)
-row.names(TAX) <- TAX[[ASVs]]
-row.names(samples) <- samples[[run_id]]
-
-otu <- otu %>% select (-ASVs)
-TAX <- TAX %>% select (-ASVs)
-samples <- samples %>% select (-run_id)
-
-head(taxa_names(otu))
-head(taxa_names(TAX))
-
 Ps <- phyloseq(otu, TAX, samples)
+Ps
 ```
 
+I kept getting an error message " Error in validObject(.Object) : invalid class “phyloseq” object: Component taxa/OTU names do not match. Taxa indices are critical to analysis. Try taxa_names()"
+
+This was solved by replacing the parameter in line 323 'taxa_are_rows = F' to taxa_are_rows = T'
+
+- taxa_are_rows =  Logical; of length 1 ignored unless object is a matrix, in which case it is required. Basically it disregards the first column
 
 ## Beta Diversity 
 
