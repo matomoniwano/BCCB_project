@@ -276,6 +276,7 @@ library("ggplot2")
 library("tidyr")
 library("viridis")
 library("reshape")
+library("dplyr")
 ```
 
 ## Checking the package version 
@@ -333,6 +334,50 @@ I kept getting an error message " Error in validObject(.Object) : invalid class 
 This was solved by replacing the parameter in line 323 'taxa_are_rows = F' to taxa_are_rows = T'
 
 - taxa_are_rows =  Logical; of length 1 ignored unless object is a matrix, in which case it is required. Basically it disregards the first column
+
+
+```{r}
+# Separate accession numbers into corresponding sample
+ps_class <- subset_taxa(Ps, Class %in% c("Deltaproteobacteria", "Gammaproteobacteria", "Nitrososphaeria", "Alphaproteobacteria", "Phycisphaerae", "Planctomycetacia", "Anaerolineae", "Gemmatimonadetes", "Nitrososphaeria", "Acidimicrobiia", "Subgroup_22", "Acidobacteria"))
+
+ps_class
+
+DSH08 <- subset_samples(ps_class, sample_id=="DSH08")
+DSH09 <- subset_samples(ps_class, sample_id=="DSH09")
+DSH10 <- subset_samples(ps_class, sample_id=="DSH10")
+IXW250 <- subset_samples(ps_class, sample_id=="IXW250")
+IXW500 <- subset_samples(ps_class, sample_id=="IXW500")
+IXW750 <- subset_samples(ps_class, sample_id=="IXW750")
+
+total = median(sample_sums(DSH08))
+standf = function(x, t=total) round(t *(x/ sum(x)))
+DSH08 = transform_sample_counts(DSH08, standf)
+
+```
+
+## producing an ordered plot
+```{r}
+
+DSH08 = tax_glom(DSH08, "Class")
+DSH08 <- transform_sample_counts(DSH08, function(x) x/sum(x))
+
+DSH08_p <- plot_bar(DSH08, x="depth", fill = "Class")
+pd <- DSH08_p$data %>% 
+  as_tibble %>%
+  mutate(Class = as.character(Class)) %>%
+  replace_na(list(Class = "unknown")) 
+Class_abun <- pd %>%
+  group_by(Class) %>%
+  summarize(Abundance = sum(Abundance)) %>%
+  arrange(Abundance)
+Class_levels <- Class_abun$Class
+pd0 <- pd %>%
+  mutate(Class = factor(Class, Class_levels))
+ggplot(pd0, aes(x = depth, y = Abundance, fill = Class )) + geom_bar(stat="identity") + ggtitle("DSH08 1100m") + scale_x_discrete(name = "Depth (cm) ", limits = c(0, 5, 10, 15, 20))
+  
+
+
+```
 
 ## Beta Diversity 
 
