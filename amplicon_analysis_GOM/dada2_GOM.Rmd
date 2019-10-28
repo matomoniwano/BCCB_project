@@ -315,10 +315,12 @@ sample_info_tab
 
 ```
 
-- sep = a string used to separate columns. using sep = "\t" gives tab deliminated output
-- quote = a logical value or a numeric vector. If TRUE, any character or factor coluns will be surrounded by double quotes. If FALSE, nothing is quoted/
-- col.names = either a logical value indicating whether the column names of x are to be written along with x, or a character vector of column names to be written. 
+- **sep** = a string used to separate columns. using sep = "\t" gives tab deliminated output
+- **quote** = a logical value or a numeric vector. If TRUE, any character or factor coluns will be surrounded by double quotes. If FALSE, nothing is quoted/
+- **col.names** = either a logical value indicating whether the column names of x are to be written along with x, or a character vector of column names to be written. 
+- **row.names** = a vector of row names. Setting it to 1 means the name of samples/ASV number is listed in the first column of the table
 
+## Assigning contigency tables and sample metadata into phyloseq object
 ```{r}
 otu_1 <- as.matrix(count_tab)
 otu <- otu_table(otu_1, taxa_are_rows = T)
@@ -333,10 +335,17 @@ I kept getting an error message " Error in validObject(.Object) : invalid class 
 
 This was solved by replacing the parameter in line 323 'taxa_are_rows = F' to taxa_are_rows = T'
 
-- taxa_are_rows =  Logical; of length 1 ignored unless object is a matrix, in which case it is required. Basically it disregards the first column
+- **taxa_are_rows** =  Logical; of length 1 ignored unless object is a matrix, in which case it is required. Basically it disregards the first column
 
+##creating variables for subset samples from phyloseq object
 
 ```{r}
+
+total = median(sample_sums(Ps))
+standf = function(x, t=total) round(t *(x/ sum(x)))
+Ps <- transform_sample_counts(Ps, standf)
+
+
 # Separate accession numbers into corresponding sample
 ps_class <- subset_taxa(Ps, Class %in% c("Deltaproteobacteria", "Gammaproteobacteria", "Nitrososphaeria", "Alphaproteobacteria", "Phycisphaerae", "Planctomycetacia", "Anaerolineae", "Gemmatimonadetes", "Nitrososphaeria", "Acidimicrobiia", "Subgroup_22", "Acidobacteria"))
 
@@ -349,35 +358,160 @@ IXW250 <- subset_samples(ps_class, sample_id=="IXW250")
 IXW500 <- subset_samples(ps_class, sample_id=="IXW500")
 IXW750 <- subset_samples(ps_class, sample_id=="IXW750")
 
-total = median(sample_sums(DSH08))
-standf = function(x, t=total) round(t *(x/ sum(x)))
-DSH08 = transform_sample_counts(DSH08, standf)
 
 ```
 
-## producing an ordered plot
+## producing community composition bar plot 
 ```{r}
 
+#DSH08
 DSH08 = tax_glom(DSH08, "Class")
 DSH08 <- transform_sample_counts(DSH08, function(x) x/sum(x))
 
 DSH08_p <- plot_bar(DSH08, x="depth", fill = "Class")
-pd <- DSH08_p$data %>% 
+pd_DSH08 <- DSH08_p$data %>% 
   as_tibble %>%
   mutate(Class = as.character(Class)) %>%
   replace_na(list(Class = "unknown")) 
-Class_abun <- pd %>%
+Class_abun_DSH08 <- pd_DSH08 %>%
   group_by(Class) %>%
   summarize(Abundance = sum(Abundance)) %>%
   arrange(Abundance)
-Class_levels <- Class_abun$Class
-pd0 <- pd %>%
-  mutate(Class = factor(Class, Class_levels))
-ggplot(pd0, aes(x = depth, y = Abundance, fill = Class )) + geom_bar(stat="identity") + ggtitle("DSH08 1100m") + scale_x_discrete(name = "Depth (cm) ", limits = c(0, 5, 10, 15, 20))
+Class_levels_DSH08 <- Class_abun_DSH08$Class
+pd0_DSH08 <- pd_DSH08 %>%
+  mutate(Class = factor(Class, Class_levels_DSH08))
+ggplot(pd0_DSH08, aes(x = depth, y = Abundance, fill = Class )) + geom_bar(stat="identity") + ggtitle("DSH08 1100m") + scale_x_discrete(name = "Depth (cm) ", limits = c(0, 5, 10, 15, 20))
   
+#DSH09
+
+DSH09 = tax_glom(DSH09, "Class")
+DSH09 <- transform_sample_counts(DSH09, function(x) x/sum(x))
+
+DSH09_p <- plot_bar(DSH09, x="depth", fill = "Class")
+pd_DSH09 <- DSH09_p$data %>% 
+  as_tibble %>%
+  mutate(Class = as.character(Class)) %>%
+  replace_na(list(Class = "unknown")) 
+pd0_DSH09 <- pd_DSH09 %>%
+  mutate(Class = factor(Class, Class_levels_DSH08))
+ggplot(pd0_DSH09, aes(x = depth, y = Abundance, fill = Class )) + geom_bar(stat="identity") + ggtitle("DSH09 2290m") + scale_x_discrete(name = "Depth (cm) ", limits = c(0, 5, 10, 15, 20))
+
+#DSH10
+
+DSH10 = tax_glom(DSH10, "Class")
+DSH10 <- transform_sample_counts(DSH10, function(x) x/sum(x))
+
+DSH10_p <- plot_bar(DSH10, x="depth", fill = "Class")
+pd_DSH10 <- DSH10_p$data %>% 
+  as_tibble %>%
+  mutate(Class = as.character(Class)) %>%
+  replace_na(list(Class = "unknown")) 
+pd0_DSH10 <- pd_DSH10 %>%
+  mutate(Class = factor(Class, Class_levels_DSH08))
+ggplot(pd0_DSH10, aes(x = depth, y = Abundance, fill = Class )) + geom_bar(stat="identity") + ggtitle("DSH10 1500m") + scale_x_discrete(name = "Depth (cm) ", limits = c(0, 5, 10, 15, 20))
+
+#IXW250
+
+IXW250 = tax_glom(IXW250, "Class")
+IXW250 <- transform_sample_counts(IXW250, function(x) x/sum(x))
+
+IXW250_p <- plot_bar(IXW250, x="depth", fill = "Class")
+pd_IXW250 <- IXW250_p$data %>% 
+  as_tibble %>%
+  mutate(Class = as.character(Class)) %>%
+  replace_na(list(Class = "unknown")) 
+pd0_IXW250 <- pd_IXW250 %>%
+  mutate(Class = factor(Class, Class_levels_DSH08))
+ggplot(pd0_IXW250, aes(x = depth, y = Abundance, fill = Class )) + geom_bar(stat="identity") + ggtitle("IXW250 583m") + scale_x_discrete(name = "Depth (cm) ", limits = c(0, 5, 10, 15, 20))
+
+#IXW500
+
+IXW500 = tax_glom(DSH08, "Class")
+IXW500 <- transform_sample_counts(IXW500, function(x) x/sum(x))
+
+IXW500_p <- plot_bar(IXW500, x="depth", fill = "Class")
+pd_IXW500 <- IXW500_p$data %>% 
+  as_tibble %>%
+  mutate(Class = as.character(Class)) %>%
+  replace_na(list(Class = "unknown")) 
+pd0_IXW500 <- pd_IXW500 %>%
+  mutate(Class = factor(Class, Class_levels_DSH08))
+ggplot(pd0_IXW500, aes(x = depth, y = Abundance, fill = Class )) + geom_bar(stat="identity") + ggtitle("IXW500 1010m") + scale_x_discrete(name = "Depth (cm) ", limits = c(0, 5, 10, 15, 20))
+
+#IXW750
+
+IXW750 = tax_glom(IXW750, "Class")
+IXW750 <- transform_sample_counts(IXW750, function(x) x/sum(x))
+
+IXW750_p <- plot_bar(IXW750, x="depth", fill = "Class")
+pd_IXW750 <- IXW750_p$data %>% 
+  as_tibble %>%
+  mutate(Class = as.character(Class)) %>%
+  replace_na(list(Class = "unknown")) 
+pd0_IXW750 <- pd_IXW750 %>%
+  mutate(Class = factor(Class, Class_levels_DSH08))
+ggplot(pd0_IXW750, aes(x = depth, y = Abundance, fill = Class )) + geom_bar(stat="identity") + ggtitle("IXW750 1440m") + scale_x_discrete(name = "Depth (cm) ", limits = c(0, 5, 10, 15, 20))
 
 
 ```
+
+- **tax_glom()** = This function merges species that have the same taxonomy at a certain taxonomic rank. WHen selecting "Class", class taxonomic rank is selected for variable assignment. 
+- **transform_sample_counts()** = This function transforms the sample counts of a taxa abundance matrix according to a user provided function. As shown above 'function(x) x/sum(x)' is used to calculate the relative sequence abundance. 
+- **ggplot()** = ggplot initializes a ggplot object.
+
+
+### Generation of heatmap
+
+Let's create a basic heatmap using default parameters
+```{r}
+#Basic heatmap
+plot_heatmap(Ps, method = "NMDS", distance = "bray")
+```
+
+- **method** = The ordination method to use for organizing the heatmap. NMDS is used as a method to plot a heatmap for this data. 
+-**distance** = A character string. The ecological distance method to use in the ordination. "bray" = bray curtis dissimilarity
+
+As shown in the heatmap, it is very clustered and difficult to distinct high abundance ASVs. It can be process in a way that only OTUs with >20% abundance are selected in the heatmap. To do this,,
+
+```{r}
+  Ps_abund <- filter_taxa(Ps, function(x) sum(x > total*0.20) > 0, TRUE)
+  Ps_abund
+```
+However, it kept getting an error stating that 'OTU abundance data must have non-zero dimensions filter_taxa' and the solution is not yet to be found. This will be posted on Github issue. 
+
+
+Rarefaction curve with iNEXT package
+
+### Installation of iNEXT package from Cran
+```{r}
+#Install from Cran
+#install.packages("iNEXT")
+
+#import package
+
+library(iNEXT)
+
+#package.version("iNEXT")
+```
+
+```{r}
+out <- iNEXT(count_tab, q=c(0, 1, 2), datatype = "abundance", endpoint=500)
+#ggiNEXT(out, type=1, facet.var="site")
+ggiNEXT(out, type=1, facet.var = "order", color.var = "site")
+
+     
+```
+
+```{r}
+data("spider")
+
+tryaa <- iNEXT(spider, q=0, datatype = "abundance")
+
+tryaa$DataInfo
+```
+
+
+### - **q** = iNEXT focuses on three measures of Hill numbers of order q: species richness (q = 0), Shannon diversity (q = 1, the exponential of Shannon entropy) and Simpson diversity (q = 2, the inverse of Simpson concentration)
 
 ## Beta Diversity 
 
