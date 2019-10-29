@@ -294,7 +294,6 @@ packageVersion("reshape")
 
 ## Reading the exported data from the directory
 
-
 ```{r}
 #write(asv_fasta, file = "ASVs_GOM.fa")
 #write.table(asv_tab, file = "ASVs_GOM.tsv", sep = "\t", quote = F, col.names = NA)
@@ -304,13 +303,14 @@ packageVersion("reshape")
 
 rm(list=ls())
 
+#Load ASV table
 count_tab <- read.table("ASVs_GOM.tsv", header=T, row.names=1, check.names=F, sep="\t")
+#Load taxonomy table
 tax_tab <- as.matrix(read.table("ASVs_GOM_Taxa.tsv", header=T, row.names=1, check.names=F, sep = "\t"))
+#Load sample matadata file
 sample_info_tab <- read.table("sample_metadata.txt", header = T, row.names = 1, check.names = F, sep = "\t")
 
-
-
-# setting the color column to be of type "character", which helps later
+#Check content of the metadata file
 sample_info_tab
 
 ```
@@ -322,35 +322,46 @@ sample_info_tab
 
 ## Assigning contigency tables and sample metadata into phyloseq object
 ```{r}
+#read ASV table into OTU_table class object
 otu_1 <- as.matrix(count_tab)
 otu <- otu_table(otu_1, taxa_are_rows = T)
+#read taxonomy table into tax_table class object
 TAX <- tax_table(tax_tab)
+#read metadata file into sample_data class object
 samples <- sample_data(sample_info_tab)
 
+#Construct phyloseq object from the component objects above. 
 Ps <- phyloseq(otu, TAX, samples)
+#Check content of the object
 Ps
 ```
 
 I kept getting an error message " Error in validObject(.Object) : invalid class “phyloseq” object: Component taxa/OTU names do not match. Taxa indices are critical to analysis. Try taxa_names()"
 
-This was solved by replacing the parameter in line 323 'taxa_are_rows = F' to taxa_are_rows = T'
+This was solved by replacing the parameter in line 327 'taxa_are_rows = F' to taxa_are_rows = T'
 
 - **taxa_are_rows** =  Logical; of length 1 ignored unless object is a matrix, in which case it is required. Basically it disregards the first column
+
+- **phyloseq()** = this function will create a phyloseq object from its component data. OTU_table class, sample_data casll and taxonomy table class. 
+
+Summary of this phyloseq object is displayed in the output
+
 
 ##creating variables for subset samples from phyloseq object
 
 ```{r}
-
+#Normalize number of reads in each sample using median sequencing depth
 total = median(sample_sums(Ps))
 standf = function(x, t=total) round(t *(x/ sum(x)))
 Ps <- transform_sample_counts(Ps, standf)
 
 
-# Separate accession numbers into corresponding sample
+# Keep taxa of interests from the publication. 
 ps_class <- subset_taxa(Ps, Class %in% c("Deltaproteobacteria", "Gammaproteobacteria", "Nitrososphaeria", "Alphaproteobacteria", "Phycisphaerae", "Planctomycetacia", "Anaerolineae", "Gemmatimonadetes", "Nitrososphaeria", "Acidimicrobiia", "Subgroup_22", "Acidobacteria"))
 
 ps_class
 
+# subset samples from whole data set. (In this case different sampling sites.)
 DSH08 <- subset_samples(ps_class, sample_id=="DSH08")
 DSH09 <- subset_samples(ps_class, sample_id=="DSH09")
 DSH10 <- subset_samples(ps_class, sample_id=="DSH10")
@@ -361,7 +372,8 @@ IXW750 <- subset_samples(ps_class, sample_id=="IXW750")
 
 ```
 
-## producing community composition bar plot 
+
+## producing community composition bar plots
 ```{r}
 
 #DSH08
@@ -458,14 +470,26 @@ ggplot(pd0_IXW750, aes(x = depth, y = Abundance, fill = Class )) + geom_bar(stat
 - **tax_glom()** = This function merges species that have the same taxonomy at a certain taxonomic rank. WHen selecting "Class", class taxonomic rank is selected for variable assignment. 
 - **transform_sample_counts()** = This function transforms the sample counts of a taxa abundance matrix according to a user provided function. As shown above 'function(x) x/sum(x)' is used to calculate the relative sequence abundance. 
 - **ggplot()** = ggplot initializes a ggplot object.
+- **ggtitle()** = this function adds title in the plot. 
+- **scale_x_discrete()** = This function allows to modify grid and axis title of x-axis. For instance **limits** parameter is used to set axis points for the plot. 
+
+Class is chosen for taxonomy rank for this bar plot. Function ggtitle() is used to display titile of each bar plot. 
 
 
 ### Generation of heatmap
 
 Let's create a basic heatmap using default parameters
 ```{r}
-#Basic heatmap
+#Basic heatmap of whole sample set
 plot_heatmap(Ps, method = "NMDS", distance = "bray")
+
+#Heatmap for each sampling site
+
+#Merge abundance count together for each sampling site. 
+Ps_sample_id <- merge_samples(Ps, "sample_id")
+#plot
+plot_heatmap(Ps_sample_id, method = "NMDS", distance = "bray")
+
 ```
 
 - **method** = The ordination method to use for organizing the heatmap. NMDS is used as a method to plot a heatmap for this data. 
@@ -474,8 +498,8 @@ plot_heatmap(Ps, method = "NMDS", distance = "bray")
 As shown in the heatmap, it is very clustered and difficult to distinct high abundance ASVs. It can be process in a way that only OTUs with >20% abundance are selected in the heatmap. To do this,,
 
 ```{r}
-  Ps_abund <- filter_taxa(Ps, function(x) sum(x > total*0.20) > 0, TRUE)
-  Ps_abund
+#This command gives an error message. 
+#Ps_sample_id <- filter_taxa(Ps_sample_id, function(x) sum(x > total * 0.2) > 0, TRUE)
 ```
 However, it kept getting an error stating that 'OTU abundance data must have non-zero dimensions filter_taxa' and the solution is not yet to be found. This will be posted on Github issue. 
 
@@ -492,23 +516,50 @@ Rarefaction curve with iNEXT package
 library(iNEXT)
 
 #package.version("iNEXT")
+
+# Install Miscellaneous functions for metagenomic analysis 
+install.packages("remotes")
+remotes:install_github("vmikk/metagMisc")
+```
+
+iNEXT function only allws data frame or contigency table as input, so if samples were grouped or names of columns were changed in phyloseq, it is important to transform a phyloseq oject into a data frame. For my case, column names of the original table are accession numbers from NCBI and the names need to be changed to individual sediment depth of sample extraction with name of sampling site. 
+```{r}
+
+#Change name of column by individual sediment depths
+
+otu_table_site <- as(otu_table(Ps_sample_id), "matrix")
+if(!taxa_are_rows(Ps_sample_id)){otu_table_site <- t(otu_table_site)}
+otu_table_site_df <- as.data.frame(otu_table_site)
+otu_table_site_df
 ```
 
 ```{r}
-out <- iNEXT(count_tab, q=c(0, 1, 2), datatype = "abundance", endpoint=500)
-#ggiNEXT(out, type=1, facet.var="site")
+# rarefaction curve for 
+out <- iNEXT(count_tab, q=0, datatype = "abundance")
+out$DataInfo
+
 ggiNEXT(out, type=1, facet.var = "order", color.var = "site")
-
-     
+ggiNEXT(out, type=2, facet.var = "order", color.var = "site")
+ggiNEXT(out, type=3, facet.var = "order", color.var = "site")
 ```
 
+As displayed in out$Datainfo, the lowest number of individuals per sample is 4864 from sample name SRR6172267. To rarefy the diversities of all localities to the lowest number of observed individuals per localitiy which is 4864, endpoint is set to 4846 and the rarefaction curves are plotted below. 
 ```{r}
-data("spider")
 
-tryaa <- iNEXT(spider, q=0, datatype = "abundance")
+out_4864 <- iNEXT(count_tab, q=0, datatype = "abundance", endpoint = 4846)
+ggiNEXT(out_4864, type = 1, facet.var = "order", color.var = "site")
 
-tryaa$DataInfo
 ```
+
+See rarefaction curve by sampling sites. 
+```{r}
+out_by_site <- iNEXT(otu_table_site_df, q=0, datatype = "abundance")
+out_by_site$DataInfo
+ggiNEXT(out_by_site, type=1, facet.var = "order", color.var = "site")
+ggiNEXT(out_by_site, type=2, facet.var = "order", color.var = "site")
+ggiNEXT(out_by_site, type=3, facet.var = "order", color.var = "site")
+```
+
 
 
 ### - **q** = iNEXT focuses on three measures of Hill numbers of order q: species richness (q = 0), Shannon diversity (q = 1, the exponential of Shannon entropy) and Simpson diversity (q = 2, the inverse of Simpson concentration)
