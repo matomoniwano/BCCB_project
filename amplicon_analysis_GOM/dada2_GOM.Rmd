@@ -488,7 +488,7 @@ plot_heatmap(Ps, method = "NMDS", distance = "bray")
 #Merge abundance count together for each sampling site. 
 Ps_sample_id <- merge_samples(Ps, "sample_id")
 #plot
-plot_heatmap(Ps_sample_id, method = "NMDS", distance = "bray")
+plot_heatmap(Ps_sample_id, method = "NMDS", distance = "bray") + labs(y = "ASVs", x = "sampling sites")
 
 ```
 
@@ -547,8 +547,8 @@ There are three types of curves plotted above.
 - **Type 3** = Coverage based R/E curve, This curve plots the diversity estimates with confidence intervals as a function of sample coverage up to the maximum coverage obrained from the maximum size described in type 1
 
 - **se** = if TRUE, it plots confidence intervals. 
-
-
+- **theme()** = Changing legend text font size. 
+- **ggtitle()** = add title to plot. 
 
 
 As displayed in out$Datainfo, the lowest number of individuals per sample is 4864 from sample name SRR6172267. To rarefy the diversities of all localities to the lowest number of observed individuals per localitiy which is 4864, endpoint is set to 4846 and the rarefaction curves are plotted below. 
@@ -569,6 +569,19 @@ ggiNEXT(out_by_site, type=1, se= TRUE, facet.var = "order", color.var = "site") 
 ggiNEXT(out_by_site, type=2, se = TRUE, facet.var = "order", color.var = "site") + ggtitle("by sites")
 ggiNEXT(out_by_site, type=3, se = TRUE, facet.var = "order", color.var = "site")  + ggtitle("by sites")
 ```
+
+
+## Plotting Chao1 richness estimator and Shannon diversity estimator. 
+
+```{r}
+plot_richness(Ps, measures = c("Chao1", "Shannon"))
+```
+
+
+```{r}
+plot_richness(Ps, measures = c("Chao1", "Shannon"), x="sample_id", color="depth") + labs(x = "Sampling sites")
+```
+
 
 
 
