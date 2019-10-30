@@ -517,9 +517,6 @@ library(iNEXT)
 
 #package.version("iNEXT")
 
-# Install Miscellaneous functions for metagenomic analysis 
-install.packages("remotes")
-remotes:install_github("vmikk/metagMisc")
 ```
 
 iNEXT function only allws data frame or contigency table as input, so if samples were grouped or names of columns were changed in phyloseq, it is important to transform a phyloseq oject into a data frame. For my case, column names of the original table are accession numbers from NCBI and the names need to be changed to individual sediment depth of sample extraction with name of sampling site. 
@@ -535,19 +532,32 @@ otu_table_site_df
 
 ```{r}
 # rarefaction curve for 
-out <- iNEXT(count_tab, q=0, datatype = "abundance")
+out <- iNEXT(count_tab, q=c(0, 2), datatype = "abundance")
 out$DataInfo
 
-ggiNEXT(out, type=1, facet.var = "order", color.var = "site")
-ggiNEXT(out, type=2, facet.var = "order", color.var = "site")
-ggiNEXT(out, type=3, facet.var = "order", color.var = "site")
+ggiNEXT(out, type=1, se= TRUE, facet.var = "order", color.var = "site") + theme(legend.text = element_text(size = 7)) + ggtitle("Sample size")
+ggiNEXT(out, type=2, se = TRUE, facet.var = "order", color.var = "site") + theme(legend.text = element_text(size = 7)) + ggtitle("Sample completeness curve")
+ggiNEXT(out, type=3, se = TRUE, facet.var = "order", color.var = "site") + theme(legend.text = element_text(size = 7)) + ggtitle("Coverage based curve")
 ```
+
+There are three types of curves plotted above.
+
+- **Type 1** = Sample- size based R/E curve. This curve plots diversity estimates with confidence intervals as a function of sample size up to double the reference sample size.
+- **Type 2** = sample completeness curve with confidence intervals. This curve plots the sample coverage with respect to sample size for the same range with type 1 plot
+- **Type 3** = Coverage based R/E curve, This curve plots the diversity estimates with confidence intervals as a function of sample coverage up to the maximum coverage obrained from the maximum size described in type 1
+
+- **se** = if TRUE, it plots confidence intervals. 
+
+
+
 
 As displayed in out$Datainfo, the lowest number of individuals per sample is 4864 from sample name SRR6172267. To rarefy the diversities of all localities to the lowest number of observed individuals per localitiy which is 4864, endpoint is set to 4846 and the rarefaction curves are plotted below. 
 ```{r}
 
-out_4864 <- iNEXT(count_tab, q=0, datatype = "abundance", endpoint = 4846)
-ggiNEXT(out_4864, type = 1, facet.var = "order", color.var = "site")
+out_4864 <- iNEXT(count_tab, q=0, datatype = "abundance", endpoint = 4846) 
+ggiNEXT(out_4864, type = 1, facet.var = "order", color.var = "site") + theme(legend.text = element_text(size = 7)) + ggtitle("endpoint = 4846")
+ggiNEXT(out, type=2, se = TRUE, facet.var = "order", color.var = "site") + theme(legend.text = element_text(size = 7)) + ggtitle("endpoint = 4846")
+ggiNEXT(out, type=3, se = TRUE, facet.var = "order", color.var = "site") + theme(legend.text = element_text(size = 7)) + ggtitle("endpoint = 4846")
 
 ```
 
@@ -555,9 +565,9 @@ See rarefaction curve by sampling sites.
 ```{r}
 out_by_site <- iNEXT(otu_table_site_df, q=0, datatype = "abundance")
 out_by_site$DataInfo
-ggiNEXT(out_by_site, type=1, facet.var = "order", color.var = "site")
-ggiNEXT(out_by_site, type=2, facet.var = "order", color.var = "site")
-ggiNEXT(out_by_site, type=3, facet.var = "order", color.var = "site")
+ggiNEXT(out_by_site, type=1, se= TRUE, facet.var = "order", color.var = "site") + ggtitle("by sites")
+ggiNEXT(out_by_site, type=2, se = TRUE, facet.var = "order", color.var = "site") + ggtitle("by sites")
+ggiNEXT(out_by_site, type=3, se = TRUE, facet.var = "order", color.var = "site")  + ggtitle("by sites")
 ```
 
 
